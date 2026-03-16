@@ -1,0 +1,15 @@
+# Derlenmiş dosyalar (Binary files)
+*.exe
+*.o
+*.so
+*.dll
+test_temel
+test_bellek
+test_csv
+benchmark
+uretec
+
+# Gereksiz sistem ve editör dosyaları
+.vscode/
+__pycache__/
+*.pyc

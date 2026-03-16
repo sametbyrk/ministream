@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiniStream — Sistem Performans Analizi</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #1ed760;
+      --bg: #090909;
+      --card: #121212;
+      --text: #ffffff;
+      --text-dim: #a7a7a7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); padding-bottom: 40px; }
+    
+    .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+    .status-badge { background: rgba(30, 215, 96, 0.1); color: var(--accent); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--accent); }
+    
+    h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 10px; }
+    p.subtitle { color: var(--text-dim); margin-bottom: 30px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    
+    .card { background: var(--card); padding: 24px; border-radius: 12px; border: 1px solid #222; }
+    .card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 15px; }
+    .card .value { font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
+    .card .desc { font-size: 0.85rem; color: var(--accent); }
+    
+    .table-container { background: var(--card); border-radius: 12px; border: 1px solid #222; padding: 24px; margin-bottom: 30px; }
+    .table-container h2 { font-size: 1.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { text-align: left; color: var(--text-dim); font-size: 0.8rem; padding: 12px; border-bottom: 1px solid #222; }
+    td { padding: 12px; font-size: 0.9rem; border-bottom: 1px solid #222; font-family: 'JetBrains Mono', monospace; }
+    
+    .bar-group { margin-top: 20px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; }
+    .bar-bg { width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 1s ease-in-out; }
+
+    #console { background: #000; padding: 20px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #0f0; border: 1px solid #333; height: 180px; overflow-y: auto; white-space: pre-wrap; margin-top: 20px; }
+
+    .run-btn { background: var(--accent); color: #000; border: none; padding: 16px 32px; border-radius: 30px; font-weight: 900; cursor: pointer; font-size: 1rem; transition: transform 0.2s; display: flex; align-items: center; gap: 10px; margin: 0 auto; }
+    .run-btn:hover { transform: scale(1.05); }
+    .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="status-badge">● C CORE AKTİF (ministream.so)</div>
+      <div style="font-weight: 900; letter-spacing: -1px; color: var(--text-dim);">MiniStream Tech Dashboard</div>
+    </header>
+
+    <h1>Sistem Performans Analizi</h1>
+    <p class="subtitle">Kopya Modeli (Naive) ve Pointer Modeli (Reference Counting) Teknik Karşılaştırması</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Bellek Avantajı</h3>
+        <div class="value" id="val-mem">—</div>
+        <div class="desc">Pointer kullanımı ile kazanılan alan</div>
+      </div>
+      <div class="card">
+        <h3>Hız Farkı</h3>
+        <div class="value" id="val-speed">—</div>
+        <div class="desc">Daha az tahsis (malloc) hızı</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <h2>📊 Teknik Ölçümler (10.000 Şarkı x 5.000 Liste)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Malloc Sayısı</th>
+            <th>Bellek (MB)</th>
+            <th>Süre (ms)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Kopya Modeli</td>
+            <td id="td-copy-malloc">—</td>
+            <td id="td-copy-size">—</td>
+            <td id="td-copy-time">—</td>
+          </tr>
+          <tr style="color: var(--accent);">
+            <td>Pointer Modeli</td>
+            <td id="td-ptr-malloc">—</td>
+            <td id="td-ptr-size">—</td>
+            <td id="td-ptr-time">—</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="bar-group">
+        <div class="bar-label"><span>Pointer Modeli Sayesinde Kurtarılan Bellek (%)</span></div>
+        <div class="bar-bg"><div id="bar-mem-fill" class="bar-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <h2>🔍 Arama Algoritması Analizi (LinkedList vs HashMap)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Ölçek (N)</th>
+            <th>LinkedList (O(n))</th>
+            <th>Hash Map (O(1))</th>
+            <th>Hız Farkı</th>
+          </tr>
+        </thead>
+        <tbody id="table-algo">
+          <tr><td>100</td><td id="alg-l-100">—</td><td id="alg-h-100">—</td><td id="alg-f-100">—</td></tr>
+          <tr><td>1.000</td><td id="alg-l-1000">—</td><td id="alg-h-1000">—</td><td id="alg-f-1000">—</td></tr>
+          <tr><td>10.000</td><td id="alg-l-10000">—</td><td id="alg-h-10000">—</td><td id="alg-f-10000">—</td></tr>
+          <tr><td>100.000</td><td id="alg-l-100000">—</td><td id="alg-h-100000">—</td><td id="alg-f-100000">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <button id="run-btn" class="run-btn" onclick="runAll()">
+      <span>RUN BENCHMARK (C-CODE)</span>
+    </button>
+
+    <div id="console">Kütüphane hazır. Testleri başlatmak için butona tıklayın.</div>
+  </div>
+
+  <script>
+    async function runAll() {
+      const btn = document.getElementById('run-btn');
+      const consoleBox = document.getElementById('console');
+      btn.disabled = true;
+      btn.innerHTML = "TEST ÇALIŞIYOR...";
+      consoleBox.innerHTML = "> C Shared Library yukleniyor...\n> Bellek baslatildi. Kopya modeli testi yapiliyor...\n> Pointer modeli ve referans sayaclari kontrol ediliyor...";
+
+      try {
+        const response = await fetch('/benchmark');
+        if (!response.ok) throw new Error("Backend kapalı veya hata verdi.");
+        const data = await response.json();
+
+        // Update UI
+        document.getElementById('val-mem').textContent = data.bellek_farki.toFixed(1) + "x";
+        document.getElementById('val-speed').textContent = data.hiz_farki.toFixed(1) + "x";
+
+        document.getElementById('td-copy-malloc').textContent = data.kopya.malloc_sayisi.toLocaleString();
+        document.getElementById('td-copy-size').textContent = (data.kopya.toplam_byte / 1e6).toFixed(2) + " MB";
+        document.getElementById('td-copy-time').textContent = data.kopya.sure_ms.toFixed(2) + " ms";
+
+        document.getElementById('td-ptr-malloc').textContent = data.pointer.malloc_sayisi.toLocaleString();
+        document.getElementById('td-ptr-size').textContent = (data.pointer.toplam_byte / 1e6).toFixed(2) + " MB";
+        document.getElementById('td-ptr-time').textContent = data.pointer.sure_ms.toFixed(2) + " ms";
+
+        document.getElementById('bar-mem-fill').style.width = (100 - (data.pointer.toplam_byte / data.kopya.toplam_byte * 100)) + "%";
+
+        const arama = data.arama_benchmark;
+        if(arama) {
+          [100, 1000, 10000, 100000].forEach((n, i) => {
+            document.getElementById(`alg-l-${n}`).textContent = arama[i].linked_list.toFixed(3) + " ms";
+            document.getElementById(`alg-h-${n}`).textContent = arama[i].hash_map.toFixed(3) + " ms";
+            document.getElementById(`alg-f-${n}`).textContent = arama[i].fark.toFixed(1) + "x";
+          });
+        }
+
+        consoleBox.innerHTML += "\n> TEST TAMAMALANDI. JSON VERİSİ ALINDI.\n> Sonuçlar tablolara işlendi.";
+        consoleBox.style.color = "#1ed760";
+
+      } catch (err) {
+        consoleBox.innerHTML += "\n\nHATA: " + err.message;
+        consoleBox.style.color = "red";
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "RUN BENCHMARK (C-CODE)";
+      }
+    }
+  </script>
+</body>
+</html>
